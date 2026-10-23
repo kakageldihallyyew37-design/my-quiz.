@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food & Drink Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fdfbfb 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            animation: popIn 0.5s ease-out;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        h1 { color: #ff6b6b; margin-bottom: 10px; }
+        .emoji { font-size: 50px; margin-bottom: 15px; }
+        .question { font-size: 1.2rem; font-weight: bold; margin: 20px 0; color: #333; }
+        .options { display: flex; flex-direction: column; gap: 12px; }
+        .btn {
+            padding: 15px;
+            font-size: 1rem;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .btn:hover { background: #e9ecef; transform: translateY(-2px); }
+        .btn.correct { background: #d4edda; border-color: #28a745; color: #155724; animation: bounce 0.5s; }
+        .btn.wrong { background: #f8d7da; border-color: #dc3545; color: #721c24; animation: shake 0.5s; }
+        .progress { height: 10px; background: #eee; border-radius: 5px; margin-bottom: 20px; overflow: hidden; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, #ff6b6b, #feca57); transition: width 0.5s; }
+        .hidden { display: none; }
+        .score { font-size: 2rem; color: #ff6b6b; font-weight: bold; }
+        #qrcode { margin: 20px auto; display: flex; justify-content: center; }
+        input { padding: 10px; width: 80%; border: 2px solid #eee; border-radius: 10px; font-size: 1rem; text-align: center; margin-bottom: 15px;}
+    </style>
+</head>
+<body>
+
+<div class="container" id="game">
+    <!-- Start Screen -->
+    <div id="start-screen">
+        <div class="emoji">🍔🍟🍕</div>
+        <h1>Food & Drink Test</h1>
+        <p>Enter your name to start!</p>
+        <input type="text" id="player-name" placeholder="Your Name">
+        <br>
+        <button class="btn" onclick="startGame()" style="background: #ff6b6b; color: white; border: none;">Start Game 🚀</button>
+        
+        <hr style="margin: 20px 0; border: 1px solid #eee;">
+        <p style="font-size: 0.9rem; color: #666;">Scan QR to play on your phone:</p>
+        <div id="qrcode"></div>
+    </div>
+
+    <!-- Question Screen -->
+    <div id="question-screen" class="hidden">
+        <div class="progress"><div class="progress-bar" id="progress"></div></div>
+        <div class="emoji" id="q-emoji"></div>
+        <div class="question" id="q-text"></div>
+        <div class="options" id="options"></div>
+    </div>
+
+    <!-- Result Screen -->
+    <div id="result-screen" class="hidden">
+        <div class="emoji">🏆</div>
+        <h1>Game Over!</h1>
+        <p>Great job, <span id="result-name"></span>!</p>
+        <div class="score" id="result-score"></div>
+        <button class="btn" onclick="location.reload()" style="background: #ff6b6b; color: white; border: none; margin-top:20px;">Play Again 🔄</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { q: "Which of these words is a vegetable?", emoji: "🥦", options: ["Banana", "Tomato", "Orange", "Apple"], correct: 1 },
+        { q: "Which of these words is a drink?", emoji: "🥤", options: ["Bread", "Cheese", "Juice", "Meat"], correct: 2 },
+        { q: "Choose the correct word for the sound [i:]:", emoji: "🗣️", options: ["Apple", "Salad", "Jam", "Tea"], correct: 3 },
+        { q: "Which sentence is correct?", emoji: "🍦", options: ["I likes ice cream.", "I like ice cream.", "I like to ice cream.", "I am like ice cream."], correct: 1 },
+        { q: "Which sentence is correct if you do NOT like soup?", emoji: "🍲", options: ["I like soup.", "I don't like soup.", "I not like soup.", "I am not like soup."], correct: 1 },
+        { q: "Which of these belongs to the 'Fruit' group?", emoji: "🍌", options: ["Carrot", "Potato", "Banana", "Tomato"], correct: 2 },
+        { q: "Which of these belongs to the 'Drinks' group?", emoji: "🥛", options: ["Milk", "Bread", "Cheese", "Fish"], correct: 0 },
+        { q: "Choose the correct sentence:", emoji: "🍎", options: ["She like apples.", "She likes apples.", "She likes apple.", "She is like apples."], correct: 1 },
+        { q: "What is the opposite of 'I like fish'?", emoji: "🐟", options: ["I like fish not.", "I not like fish.", "I don't like fish.", "I am not like fish."], correct: 2 },
+        { q: "Which of these is NOT a drink?", emoji: "🍞", options: ["Water", "Milk", "Tea", "Bread"], correct: 3 }
+    ];
+
+    let currentQ = 0;
+    let score = 0;
+    let playerName = "";
+
+    // Generate QR code for the current page URL
+    window.onload = function() {
+        new QRCode(document.getElementById("qrcode"), {
+            text: window.location.href,
+            width: 128,
+            height: 128,
+            colorDark : "#ff6b6b",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    };
+
+    function startGame() {
+        playerName = document.getElementById('player-name').value || "Student";
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('question-screen').classList.remove('hidden');
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const q = questions[currentQ];
+        document.getElementById('q-emoji').innerText = q.emoji;
+        document.getElementById('q-text').innerText = q.q;
+        document.getElementById('progress').style.width = ((currentQ) / questions.length) * 100 + '%';
+        
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = '';
+        
+        q.options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(index, btn);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, btn) {
+        const q = questions[currentQ];
+        const allBtns = document.querySelectorAll('.btn');
+        allBtns.forEach(b => b.onclick = null); // Disable buttons
+
+        if (selected === q.correct) {
+            btn.classList.add('correct');
+            score++;
+        } else {
+            btn.classList.add('wrong');
+            allBtns[q.correct].classList.add('correct');
+        }
+
+        setTimeout(() => {
+            currentQ++;
+            if (currentQ < questions.length) {
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }, 1500);
+    }
+
+    function showResults() {
+        document.getElementById('question-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+        document.getElementById('result-name').innerText = playerName;
+        document.getElementById('result-score').innerText = `${score} / ${questions.length}`;
+    }
+</script>
+</body>
+</html>
